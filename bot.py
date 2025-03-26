@@ -33,6 +33,9 @@ async def choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     elif text == "Войти":
         await update.message.reply_text("Введите ваше имя для входа.", reply_markup=ReplyKeyboardRemove())
         return LOGIN
+    elif text == "Завершить":
+        await update.message.reply_text("До свидания!", reply_markup=ReplyKeyboardRemove())
+        return ConversationHandler.END
     else:
         await update.message.reply_text("Пожалуйста, выберите 'Зарегистрироваться' или 'Войти'.")
         return CHOICE
@@ -232,8 +235,12 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Удаление пользователя недоступно (нужна база данных).")
     elif text == "Выйти":
         context.user_data["logged_in"] = False
-        await update.message.reply_text("До свидания!", reply_markup=ReplyKeyboardRemove())
-        return ConversationHandler.END
+        reply_keyboard = [["Зарегистрироваться", "Войти"]]
+        await update.message.reply_text(
+            "Вы вышли. Что хотите сделать?",
+            reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+        )
+        return CHOICE
 
     reply_keyboard = [["Просмотреть все договоры", "Добавить пользователя", "Удалить пользователя", "Выйти"]]
     await update.message.reply_text(
@@ -242,12 +249,22 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     return ADMIN_MENU
 
+async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data.clear()  # Очищаем данные пользователя
+    await update.message.reply_text(
+        "Диалог остановлен. Введите /start, чтобы начать заново.",
+        reply_markup=ReplyKeyboardRemove()
+    )
+    return ConversationHandler.END  # Завершаем диалог полностью
+
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Действие отменено.", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 def main():
+    print("Starting bot...")
     app = Application.builder().token(BOT_TOKEN).build()
+    print("Bot initialized successfully!")
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -270,12 +287,17 @@ def main():
             MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, menu)],
             ADMIN_MENU: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_menu)],
         },
-        fallbacks=[CommandHandler("cancel", cancel)]
+        fallbacks=[
+            CommandHandler("cancel", cancel),
+            CommandHandler("stop", stop)  # Команда /stop
+        ]
     )
 
     app.add_handler(conv_handler)
     app.add_handler(CommandHandler("login", login))
+    print("Starting polling...")
     app.run_polling()
+    print("Bot stopped.")
 
 if __name__ == "__main__":
     main()
