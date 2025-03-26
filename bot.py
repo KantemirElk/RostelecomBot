@@ -1,5 +1,11 @@
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, ConversationHandler
+import os
+from dotenv import load_dotenv
+
+# Загрузка переменных окружения
+load_dotenv()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # Хранилище данных пользователей и договоров
 users = {}  # {user_id: {"name": str, "email": str, "password": str, "contract": dict, "is_admin": bool}}
@@ -75,7 +81,7 @@ async def register_contract_id(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def register_contract_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["contract_type"] = update.message.text
-    await update.message.reply_text("Введите дату начала.", reply_markup=ReplyKeyboardRemove())  # Удалено (например, 01.03.2025)
+    await update.message.reply_text("Введите дату начала.", reply_markup=ReplyKeyboardRemove())
     return REGISTER_CONTRACT_START
 
 async def register_contract_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -151,7 +157,7 @@ async def register_admin_code(update: Update, context: ContextTypes.DEFAULT_TYPE
     contracts[context.user_data["contract_id"]] = users[user_id]["contract"]
     reply_keyboard = [["Войти", "Завершить"]]
     await update.message.reply_text(
-        "Роль администратора подтверждена. Регистрация завершена! Что дальше?",  # Удалено (код не проверяется)
+        "Роль администратора подтверждена. Регистрация завершена! Что дальше?",
         reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
     )
     return CHOICE
@@ -241,7 +247,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 def main():
-    app = Application.builder().token("8102887528:AAEn8lhe2whpQoZl3G_-YFs-jQejUTnS3ew").build()
+    app = Application.builder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
